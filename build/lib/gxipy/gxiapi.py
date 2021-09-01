@@ -3,10 +3,12 @@
 # -*-mode:python ; tab-width:4 -*- ex:set tabstop=4 shiftwidth=4 expandtab: -*-
 
 import numpy
+from time import sleep
 from gxipy.gxwrapper import *
 from gxipy.dxwrapper import *
 from gxipy.gxidef import *
 import types
+import cv2
 
 ERROR_SIZE = 1024
 PIXEL_BIT_MASK = 0x00ff0000
@@ -17,6 +19,42 @@ if sys.version_info.major > 2:
 else:
     INT_TYPE = (int, long)
     
+class CameraCap:
+    def __init__(self, index=0):
+        '''
+        param: index
+        '''
+        device_manager = DeviceManager()
+        self.device_manager = device_manager
+        dev_num, dev_info_list = device_manager.update_device_list()
+        
+        if dev_num == 0:
+            raise Exception("can't find camera device")
+
+        # 打开设备
+        # 获取设备基本信息列表
+        str_sn = dev_info_list[index].get("sn")
+        # 通过序列号打开设备
+        self.cam = device_manager.open_device_by_sn(str_sn)
+        # 开始采集 
+        self.cam.stream_on()
+        sleep(1)
+        # self.cam = cam
+        pass
+
+    def read(self):
+        raw_image = self.cam.data_stream[0].get_image()
+        rgb_image = raw_image.convert("RGB")
+
+        if rgb_image is None:
+            return rgb_image
+
+        # 从 RGB 图像数据创建 numpy 数组
+        numpy_image = rgb_image.get_numpy_array()
+        numpy_image = cv2.cvtColor(numpy_image, cv2.COLOR_BGR2RGB)
+        # numpy_image = numpy_image[:, :, ::-1]
+        return numpy_image
+
 
 class DeviceManager(object):
     __instance_num = 0
@@ -30,11 +68,11 @@ class DeviceManager(object):
         self.__device_num = 0
         self.__device_info_list = []
 
-#    def __del__(self):
-#        self.__class__.__instance_num -= 1
-#        if self.__class__.__instance_num <= 0:
-#            status = gx_close_lib()
-#            StatusProcessor.process(status, 'DeviceManager', 'close_lib')
+    def del_manager(self):
+        self.__class__.__instance_num -= 1
+        if self.__class__.__instance_num <= 0:
+            status = gx_close_lib()
+            StatusProcessor.process(status, 'DeviceManager', 'close_lib')
 
     def __get_device_info_list(self, base_info, ip_info, num):
         """
