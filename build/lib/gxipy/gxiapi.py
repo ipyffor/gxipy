@@ -55,6 +55,10 @@ class CameraCap:
         # numpy_image = numpy_image[:, :, ::-1]
         return numpy_image
 
+    def close(self):
+        self.cam.stream_off()
+        self.cam.close_device()
+        self.device_manager.del_manager()
 
 class DeviceManager(object):
     __instance_num = 0

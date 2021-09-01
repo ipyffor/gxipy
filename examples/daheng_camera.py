@@ -9,5 +9,6 @@ if __name__ == "__main__":
         img = cap.read()
         cv2.imshow('', img)
         if cv2.waitKey(1) == 27:
+            cap.close()
             break
 
